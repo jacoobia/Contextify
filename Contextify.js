@@ -64,7 +64,7 @@ class Contextify {
         this.link = document.createElement('link');
         this.link.rel = 'stylesheet';
         this.link.type = 'text/css';
-        this.link.href = 'css/contextify-' + theme + '.css';
+        this.link.href = 'themes/contextify-' + theme + '.css';
         document.getElementsByTagName('HEAD')[0].appendChild(this.link);
     }
 
