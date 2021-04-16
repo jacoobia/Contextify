@@ -37,13 +37,16 @@ class Contextify {
      * do not forget to call the register function once again.
      * @param buttons the button JSON definition
      * @param theme the theme to use, dark or light
-     * @param parent @optional the parent div
+     * @param container @optional the parent div
+     * @param parent the parent object, only defined for submenus
      */
-    constructor(buttons, theme, parent) {
-        this.parent = (typeof parent === "undefined") ? document.body : parent;
+    constructor(buttons, theme, container, root) {
+        this.container = (typeof container === undefined) ? document.body : container;
+        this.parent = null;
         this.active = false;
+        this.root = root;
         this.buttons = buttons;
-        this.childMenus = [];
+        this.children = [];
 
         this.assignTheme(theme);
         this.constructEvents();
@@ -75,7 +78,13 @@ class Contextify {
     constructEvents() {
         this.contextEvent = event => {
             event.preventDefault();
-            this.show(event.clientX, event.clientY);
+            if (this.root && event.target !== this.menu) {
+                for (const child of this.children) {
+                    if (event.target === child.menu)
+                        return;
+                }
+                this.show(event.clientX, event.clientY);
+            }
         }
         this.keyEvent = event => {
             event.preventDefault();
@@ -99,7 +108,7 @@ class Contextify {
         this.menu.classList.add('context');
         for (const button of this.buttons)
             this.menu.appendChild(this.parseButtonData(button));
-        this.parent.appendChild(this.menu);
+        this.container.appendChild(this.menu);
     }
 
     /**
@@ -143,7 +152,7 @@ class Contextify {
 
         if (this.hasAttribute(button, clickEvent)) {
             if (typeof button[clickEvent] === 'function') {
-                this.assignClickHandler(menuEntry, button[clickEvent]);
+                this.assignClickHandler(menuEntry, this.parent, button[clickEvent]);
             }
         }
 
@@ -154,18 +163,38 @@ class Contextify {
             menuEntry.appendChild(hotkey);
         }
 
-        /*        if(this.hasAttribute(button, 'child')) {
-                    let child = button['child'];
-                    if(child instanceof Contextify) {
-                        
+        if (this.hasAttribute(button, 'child')) {
+            this.buildChildMenu(menuEntry, button);
+        } else {
+            const closeSubMeu = event => {
+                for (const child of this.children) {
+                    if (child.active) {
+                        child.hide(false);
                     }
-                }*/
-
+                }
+            }
+            menuEntry.addEventListener('mouseenter', closeSubMeu);
+        }
         return menuEntry;
     }
 
-    buildChildMenu(parent) {
+    buildChildMenu(menuEntry, button) {
+        const childMenu = new Contextify(button['child'], this.theme, this.container);
+        childMenu.parent = this;
+        childMenu.root = false;
+        const openSubMenu = event => {
+            if (button['enabled'] === undefined || button['enabled']) {
+                let x = this.menu.offsetLeft + this.menu.clientWidth + menuEntry.offsetLeft;
+                let y = this.menu.offsetTop + menuEntry.offsetTop;
+                if (!childMenu.active) {
+                    childMenu.show(x, y);
+                }
+                else childMenu.hide(false);
+            }
+        }
 
+        this.children.push(childMenu);
+        menuEntry.addEventListener('mouseenter', openSubMenu);
     }
 
     /**
@@ -174,9 +203,9 @@ class Contextify {
      * @param menuEntry the menu button to give functionality to
      * @param func the function to call when the button is clicked
      */
-    assignClickHandler(menuEntry, func) {
+    assignClickHandler(menuEntry, parent, func) {
         menuEntry.addEventListener(clickEvent, function () {
-            func({ handled: false, button: menuEntry });
+            func({ handled: false, button: menuEntry, parent: parent });
         });
     }
 
@@ -248,7 +277,7 @@ class Contextify {
      * @param y the y position
      */
     show(x, y) {
-        if (this.active) this.hide();
+        if (this.active) this.hide(false);
         this.constructMenu();
         this.setPosition(x, y);
         this.active = true;
@@ -259,9 +288,24 @@ class Contextify {
      * removing each of the child components including the children
      * context menu objects.
      */
-    hide() {
-        this.active = false;
-        this.parent.removeChild(this.menu);
+    hide(hideParent) {
+        if (this.active) {
+            this.active = false;
+            this.hideChildren();
+            this.container.removeChild(this.menu);
+
+            if (hideParent && this.parent !== null && this.parent.active) {
+                this.parent.hide();
+            }
+        }
+    }
+
+    hideChildren() {
+        for (const child of this.children) {
+            if (child.active) {
+                child.hide();
+            }
+        }
     }
 
     /**
@@ -282,8 +326,8 @@ class Contextify {
      * @param button the button to disable
      */
     disableButton(button) {
-        this.parent.querySelector(button).classList.remove('enabled');
-        this.parent.querySelector(button).classList.add('disabled');
+        this.container.querySelector(button).classList.remove('enabled');
+        this.container.querySelector(button).classList.add('disabled');
     }
 
     /**
@@ -292,8 +336,8 @@ class Contextify {
      * @param button the button to enable
      */
     enableButton(button) {
-        this.parent.querySelector(button).classList.remove('disabled');
-        this.parent.querySelector(button).classList.add('enabled');
+        this.container.querySelector(button).classList.remove('disabled');
+        this.container.querySelector(button).classList.add('enabled');
     }
 
     /**
@@ -339,9 +383,9 @@ class Contextify {
      * Public to allow the ability to enable and disable the menu on the fly.
      */
     register() {
-        this.parent.addEventListener(contextEventId, this.contextEvent);
+        this.container.addEventListener(contextEventId, this.contextEvent);
         //this.parent.addEventListener(keyEventId, this.keyEvent);
-        this.parent.addEventListener(mouseClick, this.clickEvent);
+        this.container.addEventListener(mouseClick, this.clickEvent);
     }
 
     /**
@@ -349,9 +393,9 @@ class Contextify {
      * Public to allow the ability to enable and disable the menu on the fly.
      */
     deregister() {
-        this.parent.removeEventListener(contextEventId, this.contextEvent);
+        this.container.removeEventListener(contextEventId, this.contextEvent);
         //this.parent.removeEventListener(keyEventId, this.keyEvent);
-        this.parent.removeEventListener(mouseClick, this.clickEvent);
+        this.container.removeEventListener(mouseClick, this.clickEvent);
     }
 
 }
