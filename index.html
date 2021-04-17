@@ -27,7 +27,7 @@
         html2canvas(document.querySelector('#body')).then(function(canvas) {
             saveAs(canvas.toDataURL());
         });
-        contextMenu.hide();
+        menu.hide();
     }
 
     let themesSubmenu = [
@@ -48,9 +48,8 @@
         { type: 'separator'},
         { icon: 'fa-camera', type: 'button', text: 'Screenshot', click: screenshot },
         { icon: 'fa-times-circle', type: 'button', text: 'Cancel', click: function() { contextMenu.hide(false); } }
-    ], "dark", document.body, true);
+    ], "dark", document.body);
   
-
     function saveAs(uri) {
         var link = document.createElement('a');
         if (typeof link.download === 'string') {

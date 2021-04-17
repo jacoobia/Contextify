@@ -54,12 +54,12 @@ class Contextify {
      * @param container @optional the parent div
      * @param parent the parent object, only defined for submenus
      */
-    constructor(buttons, theme, container, root) {
+    constructor(buttons, theme, container) {
         this.container = (typeof container === undefined) ? document.body : container;
         this.parent = null;
         this.active = false;
         this.focused = false;
-        this.root = root;
+        this.root = true;
         this.buttons = buttons;
         this.children = [];
         this.hotkey = [];
@@ -392,7 +392,7 @@ class Contextify {
             this.container.removeChild(this.menu);
 
             if (hideParent && this.parent !== null && this.parent.active) {
-                this.parent.hide();
+                this.parent.hide(false);
             }
         }
     }
