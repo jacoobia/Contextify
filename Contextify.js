@@ -1,7 +1,21 @@
-const contextEventId = 'contextmenu';
-const keyEventId = 'keydown';
-const mouseClick = 'mousedown';
-const clickEvent = 'click';
+const contextEvent = 'contextmenu';
+const keyPressEvent = 'keydown';
+const mouseClickEvent = 'mousedown';
+const mouseEnterEvent = 'mouseenter';
+const mouseLeaveEvent = 'mouseleave';
+
+/* Attribute */
+const clickAttribute = 'click';
+const childAttribute = 'child';
+const typeAttribute = 'type';
+const iconAttribute = 'icon';
+const textAttribute = 'text';
+const hotkeyAttribute = 'hotkey';
+const colourAttribute = 'colour';
+const textColourAttribute = 'textcolour';
+const enabledAttribute = 'enabled';
+
+const childTimeout = 200;
 
 /**
  * A JavaScript lib to override the basic browser context menu.
@@ -44,6 +58,7 @@ class Contextify {
         this.container = (typeof container === undefined) ? document.body : container;
         this.parent = null;
         this.active = false;
+        this.focused = false;
         this.root = root;
         this.buttons = buttons;
         this.children = [];
@@ -76,6 +91,12 @@ class Contextify {
      * for the registry methods to access on the fly.
      */
     constructEvents() {
+
+        /**
+         * The context menu event used to overwrite the current 
+         * @param {*} event 
+         * @returns 
+         */
         this.contextEvent = event => {
             event.preventDefault();
             if (this.root && event.target !== this.menu) {
@@ -88,10 +109,47 @@ class Contextify {
         }
         this.keyEvent = event => {
             event.preventDefault();
-            //alert(event.keyCode);
         }
         this.clickEvent = event => {
             event.preventDefault();
+        }
+
+        /**
+         * The mouse leave event is used to disable the focused state for a menu
+         * and also to ensure that we close any menus that aren't focused and
+         * either don't have an active child menu or they do but that also isn't
+         * focused.
+         * We don't want this to close the root menu since we only want the 
+         * cancel button to close the root menu or to click away from the menu.
+         * This is set on a timeout for half a second so that we can ensure any
+         * other menus get set as focused before the current one is unfocused 
+         * allowing the user to use submenus.
+         * @param {*} event the *unused* event data
+         */
+        this.mouseLeave = event => {
+            this.leaveTimeout = setTimeout(() => {
+                this.focused = false;
+                if (!this.root) {
+                    if (this.hasActiveChild() && !this.getActiveChild().focused) {
+                        this.hide(false);
+                    } else if (!this.hasActiveChild()) {
+                        this.hide(false);
+                        if (!this.parent.root && !this.parent.focused)
+                            this.parent.hide(false);
+                    }
+                }
+            }, childTimeout);
+        }
+
+        /**
+         * Toggled the focus state to true for a menu the second the event
+         * is fired.
+         * @param {*} event 
+         */
+        this.mouseEnter = event => {
+            this.focused = true;
+            if (this.leaveTimeout !== undefined)
+                clearTimeout(this.leaveTimeout);
         }
     }
 
@@ -109,6 +167,8 @@ class Contextify {
         for (const button of this.buttons)
             this.menu.appendChild(this.parseButtonData(button));
         this.container.appendChild(this.menu);
+        this.menu.addEventListener(mouseLeaveEvent, this.mouseLeave);
+        this.menu.addEventListener(mouseEnterEvent, this.mouseEnter);
     }
 
     /**
@@ -119,51 +179,13 @@ class Contextify {
     parseButtonData(button) {
         const menuEntry = document.createElement('div');
 
-        let type = this.hasAttribute(button, 'type') ? button['type'] : 'button';
+        const type = this.hasAttribute(button, typeAttribute) ? button[typeAttribute] : 'button';
         if ('separator' === type) {
             menuEntry.classList.add('separator');
             return menuEntry;
         }
 
-        menuEntry.classList.add('contextButton');
-
-        if (this.hasAttribute(button, 'colour')) {
-            if (this.validateColourCode(button['colour'])) {
-                let rgba = this.translateColourCodes(button['colour'].toString());
-                menuEntry.style.cssText = `background-color: ${rgba}`;
-            }
-        }
-
-        if (this.hasAttribute(button, 'textcolour')) {
-            if (this.validateColourCode(button['textcolour'])) {
-                let rgba = this.translateColourCodes(button['textcolour'].toString());
-                menuEntry.style.cssText = `color: ${rgba}`;
-            }
-        }
-
-        this.appendLabelAndIcon(button, menuEntry, button['text'].toString());
-        menuEntry.id = button['text'];
-
-
-
-        if (this.hasAttribute(button, 'enabled')) {
-            menuEntry.classList.add(button['enabled'] ? 'enabled' : 'disabled');
-        }
-
-        if (this.hasAttribute(button, clickEvent)) {
-            if (typeof button[clickEvent] === 'function') {
-                this.assignClickHandler(menuEntry, this.parent, button[clickEvent]);
-            }
-        }
-
-        if (this.hasAttribute(button, 'hotkey')) {
-            const hotkey = document.createElement('span');
-            hotkey.classList.add('hotkey');
-            hotkey.innerText = button['hotkey'];
-            menuEntry.appendChild(hotkey);
-        }
-
-        if (this.hasAttribute(button, 'child')) {
+        if (this.hasAttribute(button, childAttribute)) {
             this.buildChildMenu(menuEntry, button);
         } else {
             const closeSubMeu = event => {
@@ -173,17 +195,56 @@ class Contextify {
                     }
                 }
             }
-            menuEntry.addEventListener('mouseenter', closeSubMeu);
+            menuEntry.addEventListener(mouseEnterEvent, closeSubMeu);
         }
+
+        menuEntry.classList.add('contextButton');
+
+        if (this.hasAttribute(button, colourAttribute)) {
+            if (this.validateColourCode(button[colourAttribute])) {
+                let rgba = this.translateColourCodes(button[colourAttribute].toString());
+                menuEntry.style.cssText = `background-color: ${rgba}`;
+            }
+        }
+
+        if (this.hasAttribute(button, textColourAttribute)) {
+            if (this.validateColourCode(button[textColourAttribute])) {
+                let rgba = this.translateColourCodes(button[textColourAttribute].toString());
+                menuEntry.style.cssText = `color: ${rgba}`;
+            }
+        }
+
+        this.appendLabelAndIcon(button, menuEntry, button[textAttribute].toString());
+        menuEntry.id = button[textAttribute];
+
+
+
+        if (this.hasAttribute(button, enabledAttribute)) {
+            menuEntry.classList.add(button[enabledAttribute] ? enabledAttribute : 'disabled');
+        }
+
+        if (this.hasAttribute(button, clickAttribute)) {
+            if (typeof button[clickAttribute] === 'function') {
+                this.assignClickHandler(menuEntry, this.parent, button[clickAttribute]);
+            }
+        }
+
+        if (this.hasAttribute(button, hotkeyAttribute)) {
+            const hotkey = document.createElement('span');
+            hotkey.classList.add(hotkeyAttribute);
+            hotkey.innerText = button[hotkeyAttribute];
+            menuEntry.appendChild(hotkey);
+        }
+
         return menuEntry;
     }
 
     buildChildMenu(menuEntry, button) {
-        const childMenu = new Contextify(button['child'], this.theme, this.container);
+        const childMenu = new Contextify(button[childAttribute], this.theme, this.container);
         childMenu.parent = this;
         childMenu.root = false;
         const openSubMenu = event => {
-            if (button['enabled'] === undefined || button['enabled']) {
+            if (button[enabledAttribute] === undefined || button[enabledAttribute]) {
                 let x = this.menu.offsetLeft + this.menu.clientWidth + menuEntry.offsetLeft;
                 let y = this.menu.offsetTop + menuEntry.offsetTop;
                 if (!childMenu.active) {
@@ -194,7 +255,7 @@ class Contextify {
         }
 
         this.children.push(childMenu);
-        menuEntry.addEventListener('mouseenter', openSubMenu);
+        menuEntry.addEventListener(mouseEnterEvent, openSubMenu);
     }
 
     /**
@@ -204,7 +265,7 @@ class Contextify {
      * @param func the function to call when the button is clicked
      */
     assignClickHandler(menuEntry, parent, func) {
-        menuEntry.addEventListener(clickEvent, function () {
+        menuEntry.addEventListener(clickAttribute, function () {
             func({ handled: false, button: menuEntry, parent: parent });
         });
     }
@@ -249,12 +310,12 @@ class Contextify {
      * @param text the text for the label
      */
     appendLabelAndIcon(button, parent, text) {
-        if (this.hasAttribute(button, 'icon')) {
+        if (this.hasAttribute(button, iconAttribute)) {
             if (this.validateFontAwesome()) {
                 const icon = document.createElement('span');
                 icon.classList.add('fa');
-                icon.classList.add(button['icon']);
-                icon.classList.add('icon');
+                icon.classList.add(button[iconAttribute]);
+                icon.classList.add(iconAttribute);
                 parent.appendChild(icon);
             }
             else console.warn('Warning: Use of icons requires fontawesome. Icons will not load.');
@@ -306,6 +367,18 @@ class Contextify {
                 child.hide();
             }
         }
+    }
+
+    hasActiveChild() {
+        return this.getActiveChild() !== null;
+    }
+
+    getActiveChild() {
+        for (const child of this.children) {
+            if (child.active)
+                return child;
+        }
+        return null;
     }
 
     /**
@@ -383,9 +456,9 @@ class Contextify {
      * Public to allow the ability to enable and disable the menu on the fly.
      */
     register() {
-        this.container.addEventListener(contextEventId, this.contextEvent);
+        this.container.addEventListener(contextEvent, this.contextEvent);
         //this.parent.addEventListener(keyEventId, this.keyEvent);
-        this.container.addEventListener(mouseClick, this.clickEvent);
+        this.container.addEventListener(mouseClickEvent, this.clickEvent);
     }
 
     /**
@@ -393,9 +466,9 @@ class Contextify {
      * Public to allow the ability to enable and disable the menu on the fly.
      */
     deregister() {
-        this.container.removeEventListener(contextEventId, this.contextEvent);
+        this.container.removeEventListener(contextEvent, this.contextEvent);
         //this.parent.removeEventListener(keyEventId, this.keyEvent);
-        this.container.removeEventListener(mouseClick, this.clickEvent);
+        this.container.removeEventListener(mouseClickEvent, this.clickEvent);
     }
 
 }
