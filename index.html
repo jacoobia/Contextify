@@ -35,7 +35,8 @@
         { icon: 'fa-swatchbook', type: 'button', hotkey: 'Alt + 2', text: 'Light Theme', click: function(event) { event.parent.assignTheme('light'); } },
         { icon: 'fa-swatchbook', type: 'button', hotkey: 'Alt + 3', text: 'Acid Theme', click: function(event) { event.parent.assignTheme('acid'); } },
         { icon: 'fa-swatchbook', type: 'button', hotkey: 'Alt + 4', text: 'Minimal Theme', click: function(event) { event.parent.assignTheme('min'); } },
-        { icon: 'fa-swatchbook', type: 'button', hotkey: 'Alt + 5', text: 'Soft Theme', click: function(event) { event.parent.assignTheme('soft'); } }
+        { icon: 'fa-swatchbook', type: 'button', hotkey: 'Alt + 5', text: 'Soft Theme', click: function(event) { event.parent.assignTheme('soft'); } },
+        { icon: 'fa-swatchbook', type: 'button', hotkey: 'Alt + 6', text: 'Simple Theme', click: function(event) { event.parent.assignTheme('simple'); } }
     ];
 
     const contextMenu = new Contextify([
@@ -47,7 +48,7 @@
         { type: 'separator'},
         { icon: 'fa-camera', type: 'button', text: 'Screenshot', click: screenshot },
         { icon: 'fa-times-circle', type: 'button', text: 'Cancel', click: function() { contextMenu.hide(false); } }
-    ], "silent", document.body, true);
+    ], "dark", document.body, true);
   
 
     function saveAs(uri) {

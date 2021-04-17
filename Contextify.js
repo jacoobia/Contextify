@@ -62,6 +62,9 @@ class Contextify {
         this.root = root;
         this.buttons = buttons;
         this.children = [];
+        this.hotkey = [];
+        this.pressed = [];
+        this.keypressFunc = null;
 
         this.assignTheme(theme);
         this.constructEvents();
@@ -107,11 +110,21 @@ class Contextify {
                 this.show(event.clientX, event.clientY);
             }
         }
-        this.keyEvent = event => {
-            event.preventDefault();
-        }
+
+        /**
+         * Checks if anything but a menu is clicked, if so we want to close
+         * the root menu this closing each of the children too.
+         * @param {*} event 
+         */
         this.clickEvent = event => {
             event.preventDefault();
+            if (this.root) {
+                if (this.menu !== undefined) {
+                    if (!this.menuEntryMember(event.target)) {
+                        this.hide(false);
+                    }
+                }
+            }
         }
 
         /**
@@ -136,6 +149,12 @@ class Contextify {
                         this.hide(false);
                         if (!this.parent.root && !this.parent.focused)
                             this.parent.hide(false);
+                    }
+                } else {
+                    if (this.hasActiveChild()) {
+                        const child = this.getActiveChild();
+                        if (!child.focused)
+                            child.hide(false);
                     }
                 }
             }, childTimeout);
@@ -178,6 +197,7 @@ class Contextify {
      */
     parseButtonData(button) {
         const menuEntry = document.createElement('div');
+        menuEntry.classList.add('menuEntry');
 
         const type = this.hasAttribute(button, typeAttribute) ? button[typeAttribute] : 'button';
         if ('separator' === type) {
@@ -225,20 +245,20 @@ class Contextify {
 
         if (this.hasAttribute(button, clickAttribute)) {
             if (typeof button[clickAttribute] === 'function') {
-                this.assignClickHandler(menuEntry, this.parent, button[clickAttribute]);
+                this.assignClickHandler(button, menuEntry, this.parent, button[clickAttribute]);
             }
-        }
-
-        if (this.hasAttribute(button, hotkeyAttribute)) {
-            const hotkey = document.createElement('span');
-            hotkey.classList.add(hotkeyAttribute);
-            hotkey.innerText = button[hotkeyAttribute];
-            menuEntry.appendChild(hotkey);
         }
 
         return menuEntry;
     }
 
+    /**
+     * Parses menu data for a child menu and assigns the new menu to
+     * open when the corresponding menu button icon on the parent
+     * menu is hovered over.
+     * @param menuEntry the menu button responsible for the child menu 
+     * @param button the button data to parse for the child menu
+     */
     buildChildMenu(menuEntry, button) {
         const childMenu = new Contextify(button[childAttribute], this.theme, this.container);
         childMenu.parent = this;
@@ -261,13 +281,29 @@ class Contextify {
     /**
      * Assigns the click functionality to a specific button,
      * in the form of a function to call when clicked.
+     * @param button the button data to check for the hotkey attribute
      * @param menuEntry the menu button to give functionality to
+     * @param parent the parent object of the menu button
      * @param func the function to call when the button is clicked
      */
-    assignClickHandler(menuEntry, parent, func) {
+    assignClickHandler(button, menuEntry, parent, func) {
         menuEntry.addEventListener(clickAttribute, function () {
             func({ handled: false, button: menuEntry, parent: parent });
         });
+
+        if (this.hasAttribute(button, hotkeyAttribute)) {
+            const hotkey = document.createElement('span');
+            const hotkeyName = button[hotkeyAttribute];
+            hotkey.classList.add(hotkeyAttribute);
+            hotkey.innerText = hotkeyName;
+
+            if (hotkeyName.includes(' + ')) {
+                this.hotkey = hotkeyName.split(' + ');
+            }
+
+            this.keypressFunc = func;
+            menuEntry.appendChild(hotkey);
+        }
     }
 
     /**
@@ -361,22 +397,39 @@ class Contextify {
         }
     }
 
+    /**
+     * Systematically hides the child menus of a
+     * given menu with the false param so that the
+     * child object does not try to disable its 
+     * parent oject also. 
+     */
     hideChildren() {
         for (const child of this.children) {
             if (child.active) {
-                child.hide();
+                child.hide(false);
             }
         }
     }
 
+    /**
+     * Checks if a menu has a currently active child menu
+     * @returns if a menu has an active child
+     */
     hasActiveChild() {
         return this.getActiveChild() !== null;
     }
 
+    /**
+     * Gets the first active child from the
+     * array of children for a menu.
+     * @returns null or Contextify child object
+     */
     getActiveChild() {
-        for (const child of this.children) {
-            if (child.active)
-                return child;
+        if (this.children !== undefined) {
+            for (const child of this.children) {
+                if (child.active)
+                    return child;
+            }
         }
         return null;
     }
@@ -425,6 +478,17 @@ class Contextify {
     }
 
     /**
+     * Checks if a page element/an object is a member of a
+     * menu or menu entry
+     * @param obj the object to check 
+     * @returns bool is the object a member of a menu
+     */
+    menuEntryMember(obj) {
+        return (obj.classList.contains('menuEntry') ||
+            obj.parentElement.classList.contains('menuEntry'));
+    }
+
+    /**
      * Checks to see if fontawesome css is included in the project,
      * or if a webkit js implementation is included in the project.
      * Only called when the icon attribute is used otherwise it will
@@ -457,7 +521,7 @@ class Contextify {
      */
     register() {
         this.container.addEventListener(contextEvent, this.contextEvent);
-        //this.parent.addEventListener(keyEventId, this.keyEvent);
+        //this.container.addEventListener(keyPressEvent, this.keyPressedEvent);
         this.container.addEventListener(mouseClickEvent, this.clickEvent);
     }
 
@@ -467,7 +531,7 @@ class Contextify {
      */
     deregister() {
         this.container.removeEventListener(contextEvent, this.contextEvent);
-        //this.parent.removeEventListener(keyEventId, this.keyEvent);
+        //this.container.removeEventListener(keyPressEvent, this.keyPressedEvent);
         this.container.removeEventListener(mouseClickEvent, this.clickEvent);
     }
 

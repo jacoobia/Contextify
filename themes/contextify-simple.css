@@ -11,7 +11,9 @@
     font-size: 8pt;
 
     /* Colouring and shadow */
-    background: #000;
+    background: #1d2f43;
+    box-shadow: 4px 4px 3px -1px rgba(0, 0, 0, 0.5);
+    border-radius: 10px;
 
     /* Anim */
     -webkit-animation-name: fadeIn;
@@ -35,7 +37,8 @@
 }
 
 .context .contextButton:hover {
-    background: #4B4C4F;
+    background: #c0c0c0;
+    color: #000;
     border-radius: 10px;
 }
 
@@ -49,6 +52,7 @@
 
 .context .disabled:hover {
     background: inherit;
+    color: #878B90;
 }
 
 .context .disabled:hover .hotkey {
@@ -67,7 +71,7 @@
 }
 
 .icon {
-    display: none;
+    display: none !important;
     float: right;
     margin: 1px 0 0 0;
 }
