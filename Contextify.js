@@ -62,6 +62,7 @@ class Contextify {
         this.hotkey = [];
         this.pressed = [];
         this.keypressFunc = null;
+        this.theme = theme;
 
         this.assignTheme(theme);
         this.constructEvents();
