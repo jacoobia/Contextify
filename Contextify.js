@@ -35,9 +35,6 @@ const childTimeout = 200;
  *
  * @author Jacob 'Jacoobia' Hampton
  * @git https://github.com/jacoobia
- * 
- * 
- * todo: add icon library functionality
  */
 class Contextify {
 
