@@ -28,3 +28,9 @@ This library was written for use in a personal project of mine as an AIO solutio
 
 Which creates the following menu (note, the example requires you to have a form of FontAwesome installed):
 ![Example Menu](https://by3301files.storage.live.com/y4meHtRWf5VBnb5SxLdxHbo-apkdGGw8MCFqGiW-T7sUl7KSlJkkWMDMwZeTXBDCFw7qZqbCUZ58hPljmvqTTxu7mm819PPWu_PpmtJLw-rXW50bzstHEQotokCZgFbU6Wy4lYt2824E7pbUON25EnoqboF1ASE8-c7OwIgUp_8P-HdzcGSOcxR_Lb7K-f5JY2K?width=252&height=84&cropmode=none)
+
+                                                   
+Disclaimer: This has only been tested on desktop, MacOS and Windows 10. I have not tested this on any mobile devices.
+![windows test](https://user-images.githubusercontent.com/15943248/128567733-a9b1c10d-6bcd-4015-ae76-946c58738626.png)
+                                                   
+![vm mac os test](https://user-images.githubusercontent.com/15943248/128567735-3a9402fe-8b84-46d7-add9-6e63a6ffa5cc.PNG)
