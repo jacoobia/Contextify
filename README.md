@@ -31,6 +31,4 @@ Which creates the following menu (note, the example requires you to have a form 
 
                                                    
 Disclaimer: This has only been tested on desktop, MacOS and Windows 10. I have not tested this on any mobile devices.
-![windows test](https://user-images.githubusercontent.com/15943248/128567733-a9b1c10d-6bcd-4015-ae76-946c58738626.png)
-                                                   
-![vm mac os test](https://user-images.githubusercontent.com/15943248/128567735-3a9402fe-8b84-46d7-add9-6e63a6ffa5cc.PNG)
+<img src="https://user-images.githubusercontent.com/15943248/128567733-a9b1c10d-6bcd-4015-ae76-946c58738626.png" width="480" height="300" /> <img src="https://user-images.githubusercontent.com/15943248/128567735-3a9402fe-8b84-46d7-add9-6e63a6ffa5cc.PNG" width="480" height="300" />
