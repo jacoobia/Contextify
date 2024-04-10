@@ -49,9 +49,10 @@ class Contextify {
      * @param buttons the button JSON definition
      * @param theme the theme to use, dark or light
      * @param container @optional the parent div
+     * @param alignment @optional the orientation of parent
      * @param parent the parent object, only defined for submenus
      */
-    constructor(buttons, theme, container) {
+    constructor(buttons, theme, container, alignment) {
         this.container = (typeof container === undefined) ? document.body : container;
         this.parent = null;
         this.active = false;
@@ -63,6 +64,7 @@ class Contextify {
         this.pressed = [];
         this.keypressFunc = null;
         this.theme = theme;
+        this.alignment = (typeof alignment === undefined) ? 'south-east' : alignment;
 
         this.assignTheme(theme);
         this.constructEvents();
@@ -374,6 +376,52 @@ class Contextify {
     show(x, y) {
         if (this.active) this.hide(false);
         this.constructMenu();
+
+        let scrollLeftValue		    = document.documentElement.scrollLeft;
+        let scrollTopValue		    = document.documentElement.scrollTop;
+        let window_total_width		= window.innerWidth + scrollLeftValue;
+        let window_total_height		= window.innerHeight + scrollTopValue;
+
+        let context_width   = this.menu.offsetWidth;
+        let context_height  = this.menu.offsetHeight;
+
+        if (this.parent === null) {
+            switch (this.alignment) {
+                case 'north-west':
+                    x += (-1 * context_width);
+                    y += (-1 * context_height);
+                    break;
+                case 'north-east':
+                    y += (-1 * context_height);
+                    break;
+                case 'south-west':
+                    x += (-1 * context_width);
+                    break;
+                case 'south-east':
+                default:
+                    /* nothing to change */
+            }
+        }
+
+        if ((x + context_width) > window_total_width) {
+            x += (-1 * context_width);
+            if (this.parent !== null) {
+                x += (-1 * this.parent.menu.offsetWidth);
+            }
+        }
+
+        if ((y + context_height) > window_total_height) {
+            y += (-1 * context_height);
+        }
+
+        /* fallback to zero if start point is left or above out of range */
+        if (y < 0) {
+            y = 0;
+        }
+        if (x < 0) {
+            x = 0;
+        }
+
         this.setPosition(x, y);
         this.active = true;
     }
