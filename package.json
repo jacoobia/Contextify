@@ -1,0 +1,38 @@
+{
+  "name": "contextify",
+  "version": "1.0.0",
+  "description": "A lightweight vanilla JavaScript context menu library with FontAwesome support.",
+  "author": "Jacob Hampton",
+  "license": "MIT",
+  "repository": "github:jacoobia/Contextify",
+  "type": "module",
+  "main": "./dist/contextify.cjs",
+  "module": "./dist/contextify.js",
+  "types": "./dist/contextify.d.ts",
+  "unpkg": "./dist/contextify.global.js",
+  "jsdelivr": "./dist/contextify.global.js",
+  "exports": {
+    ".": {
+      "import": {
+        "types": "./dist/contextify.d.ts",
+        "default": "./dist/contextify.js"
+      },
+      "require": {
+        "types": "./dist/contextify.d.cts",
+        "default": "./dist/contextify.cjs"
+      }
+    },
+    "./themes/*": "./themes/*"
+  },
+  "files": [
+    "dist",
+    "themes"
+  ],
+  "scripts": {
+    "build": "tsup"
+  },
+  "devDependencies": {
+    "tsup": "^9.0.0",
+    "typescript": "^6.0.3"
+  }
+}

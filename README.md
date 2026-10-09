@@ -17,6 +17,12 @@ This library was written for use in a personal project of mine as an AIO solutio
 # Usage
 
 ```
+npm install contextify
+```
+
+```
+    import Contextify from 'contextify';
+
     //Construct our menu buttons 
     const menuButtons = [
         { icon: 'fa-camera', type: 'button', text: 'Screenshot', click: screenshot },
@@ -25,6 +31,20 @@ This library was written for use in a personal project of mine as an AIO solutio
     //Create our new Contextify object with the buttons, theme, container
     const menu = new Contextify(menuButtons, "dark", document.body);
 ```
+
+Themes are loaded from `themes/` relative to the page by default. If you serve them from elsewhere, pass the folder as the fifth argument:
+
+```
+    const menu = new Contextify(menuButtons, "dark", document.body, undefined, "/node_modules/contextify/themes/");
+```
+
+Without a bundler, use the browser build, which exposes a global `Contextify`:
+
+```
+    <script src="https://unpkg.com/contextify/dist/contextify.global.js"></script>
+```
+
+TypeScript types ship with the package (`ContextifyButton`, `ContextifyClickEvent`, `Alignment`).
 
 Which creates the following menu (note, the example requires you to have a form of FontAwesome installed):
 ![Example Menu](https://by3301files.storage.live.com/y4meHtRWf5VBnb5SxLdxHbo-apkdGGw8MCFqGiW-T7sUl7KSlJkkWMDMwZeTXBDCFw7qZqbCUZ58hPljmvqTTxu7mm819PPWu_PpmtJLw-rXW50bzstHEQotokCZgFbU6Wy4lYt2824E7pbUON25EnoqboF1ASE8-c7OwIgUp_8P-HdzcGSOcxR_Lb7K-f5JY2K?width=252&height=84&cropmode=none)

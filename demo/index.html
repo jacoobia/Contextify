@@ -3,7 +3,16 @@
 
 <header>
     <meta charset="utf-8" />
-    <link rel="stylesheet" href="index.css">
+    <style>
+        .center {
+            text-align: center;
+            font-family: 'Roboto', sans-serif;
+            font-size: 25px;
+            position: fixed;
+            top: 0; right: 0; bottom: 0; left: 0;
+            border: 15px solid rgb(34, 130, 185);
+        }
+    </style>
     <title>Contextify Test</title>
 </header>
 
@@ -13,9 +22,9 @@
 
     <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
     <script src="https://kit.fontawesome.com/df7df855c2.js" crossorigin="anonymous"></script>
-    <script src="Contextify.js"> </script>
+    <script type="module">
+    import Contextify from '../dist/contextify.js';
 
-    <script>
     const randomColour = function(event) {
         let r = Math.floor(Math.random() * 255) + 1;
         let g = Math.floor(Math.random() * 255) + 1;
@@ -48,7 +57,7 @@
         { type: 'separator'},
         { icon: 'fa-camera', type: 'button', text: 'Screenshot', click: screenshot },
         { icon: 'fa-times-circle', type: 'button', text: 'Cancel', click: function() { contextMenu.hide(false); } }
-    ], "dark", document.body);
+    ], "dark", document.body, undefined, "../themes/");
   
     function saveAs(uri) {
         var link = document.createElement('a');

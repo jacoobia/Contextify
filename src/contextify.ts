@@ -17,6 +17,26 @@ const enabledAttribute = 'enabled';
 
 const childTimeout = 200;
 
+export type Alignment = 'north-west' | 'north-east' | 'south-west' | 'south-east';
+
+export interface ContextifyClickEvent {
+    handled: boolean;
+    button: HTMLDivElement;
+    parent: Contextify | null;
+}
+
+export interface ContextifyButton {
+    type?: 'button' | 'separator';
+    text?: string;
+    icon?: string;
+    hotkey?: string;
+    colour?: string;
+    textcolour?: string;
+    enabled?: boolean;
+    click?: (event: ContextifyClickEvent) => void;
+    child?: ContextifyButton[];
+}
+
 /**
  * A JavaScript lib to override the basic browser context menu.
  * Passing in the parent object will allow you to specify which objects
@@ -36,7 +56,28 @@ const childTimeout = 200;
  * @author Jacob 'Jacoobia' Hampton
  * @git https://github.com/jacoobia
  */
-class Contextify {
+export default class Contextify {
+
+    container: HTMLElement;
+    parent: Contextify | null;
+    active: boolean;
+    focused: boolean;
+    root: boolean;
+    buttons: ContextifyButton[];
+    children: Contextify[];
+    hotkey: string[];
+    pressed: string[];
+    keypressFunc: ((event: ContextifyClickEvent) => void) | null;
+    theme: string;
+    themePath: string;
+    alignment: Alignment | undefined;
+    link?: HTMLLinkElement;
+    menu!: HTMLDivElement;
+    leaveTimeout?: ReturnType<typeof setTimeout>;
+    contextEvent!: (event: MouseEvent) => void;
+    clickEvent!: (event: MouseEvent) => void;
+    mouseLeave!: (event: MouseEvent) => void;
+    mouseEnter!: (event: MouseEvent) => void;
 
     /**
      * Takes in the parent div which controls where you can
@@ -52,8 +93,8 @@ class Contextify {
      * @param alignment @optional the orientation of parent
      * @param parent the parent object, only defined for submenus
      */
-    constructor(buttons, theme, container, alignment) {
-        this.container = (typeof container === undefined) ? document.body : container;
+    constructor(buttons: ContextifyButton[], theme: string, container: HTMLElement, alignment?: Alignment, themePath = 'themes/') {
+        this.container = container;
         this.parent = null;
         this.active = false;
         this.focused = false;
@@ -64,7 +105,8 @@ class Contextify {
         this.pressed = [];
         this.keypressFunc = null;
         this.theme = theme;
-        this.alignment = (typeof alignment === undefined) ? 'south-east' : alignment;
+        this.themePath = themePath;
+        this.alignment = alignment;
 
         this.assignTheme(theme);
         this.constructEvents();
@@ -78,14 +120,14 @@ class Contextify {
      * contextify-{name}-.css and add that name to the constructor
      * call for the Contextify object.
      */
-    assignTheme(theme) {
+    assignTheme(theme: string, themePath = this.themePath) {
         if (this.link !== undefined) {
             document.getElementsByTagName('head')[0].removeChild(this.link);
         }
         this.link = document.createElement('link');
         this.link.rel = 'stylesheet';
         this.link.type = 'text/css';
-        this.link.href = 'themes/contextify-' + theme + '.css';
+        this.link.href = themePath + 'contextify-' + theme + '.css';
         document.getElementsByTagName('HEAD')[0].appendChild(this.link);
     }
 
@@ -96,9 +138,9 @@ class Contextify {
     constructEvents() {
 
         /**
-         * The context menu event used to overwrite the current 
-         * @param {*} event 
-         * @returns 
+         * The context menu event used to overwrite the current
+         * @param {*} event
+         * @returns
          */
         this.contextEvent = event => {
             event.preventDefault();
@@ -114,13 +156,13 @@ class Contextify {
         /**
          * Checks if anything but a menu is clicked, if so we want to close
          * the root menu this closing each of the children too.
-         * @param {*} event 
+         * @param {*} event
          */
         this.clickEvent = event => {
             event.preventDefault();
             if (this.root) {
                 if (this.menu !== undefined) {
-                    if (!this.menuEntryMember(event.target)) {
+                    if (!this.menuEntryMember(event.target as HTMLElement)) {
                         this.hide(false);
                     }
                 }
@@ -132,10 +174,10 @@ class Contextify {
          * and also to ensure that we close any menus that aren't focused and
          * either don't have an active child menu or they do but that also isn't
          * focused.
-         * We don't want this to close the root menu since we only want the 
+         * We don't want this to close the root menu since we only want the
          * cancel button to close the root menu or to click away from the menu.
          * This is set on a timeout for half a second so that we can ensure any
-         * other menus get set as focused before the current one is unfocused 
+         * other menus get set as focused before the current one is unfocused
          * allowing the user to use submenus.
          * @param {*} event the *unused* event data
          */
@@ -143,16 +185,16 @@ class Contextify {
             this.leaveTimeout = setTimeout(() => {
                 this.focused = false;
                 if (!this.root) {
-                    if (this.hasActiveChild() && !this.getActiveChild().focused) {
+                    if (this.hasActiveChild() && !this.getActiveChild()!.focused) {
                         this.hide(false);
                     } else if (!this.hasActiveChild()) {
                         this.hide(false);
-                        if (!this.parent.root && !this.parent.focused)
-                            this.parent.hide(false);
+                        if (!this.parent!.root && !this.parent!.focused)
+                            this.parent!.hide(false);
                     }
                 } else {
                     if (this.hasActiveChild()) {
-                        const child = this.getActiveChild();
+                        const child = this.getActiveChild()!;
                         if (!child.focused)
                             child.hide(false);
                     }
@@ -163,7 +205,7 @@ class Contextify {
         /**
          * Toggled the focus state to true for a menu the second the event
          * is fired.
-         * @param {*} event 
+         * @param {*} event
          */
         this.mouseEnter = event => {
             this.focused = true;
@@ -195,7 +237,7 @@ class Contextify {
      * and custom data.
      * @param button the button data to parse
      */
-    parseButtonData(button) {
+    parseButtonData(button: ContextifyButton) {
         const menuEntry = document.createElement('div');
         menuEntry.classList.add('menuEntry');
 
@@ -208,7 +250,7 @@ class Contextify {
         if (this.hasAttribute(button, childAttribute)) {
             this.buildChildMenu(menuEntry, button);
         } else {
-            const closeSubMeu = event => {
+            const closeSubMeu = (event: MouseEvent) => {
                 for (const child of this.children) {
                     if (child.active) {
                         child.hide(false);
@@ -221,21 +263,21 @@ class Contextify {
         menuEntry.classList.add('contextButton');
 
         if (this.hasAttribute(button, colourAttribute)) {
-            if (this.validateColourCode(button[colourAttribute])) {
-                let rgba = this.translateColourCodes(button[colourAttribute].toString());
+            if (this.validateColourCode(button[colourAttribute]!)) {
+                let rgba = this.translateColourCodes(button[colourAttribute]!.toString());
                 menuEntry.style.cssText = `background-color: ${rgba}`;
             }
         }
 
         if (this.hasAttribute(button, textColourAttribute)) {
-            if (this.validateColourCode(button[textColourAttribute])) {
-                let rgba = this.translateColourCodes(button[textColourAttribute].toString());
+            if (this.validateColourCode(button[textColourAttribute]!)) {
+                let rgba = this.translateColourCodes(button[textColourAttribute]!.toString());
                 menuEntry.style.cssText = `color: ${rgba}`;
             }
         }
 
-        this.appendLabelAndIcon(button, menuEntry, button[textAttribute].toString());
-        menuEntry.id = button[textAttribute];
+        this.appendLabelAndIcon(button, menuEntry, button[textAttribute]!.toString());
+        menuEntry.id = button[textAttribute]!;
 
 
 
@@ -256,14 +298,14 @@ class Contextify {
      * Parses menu data for a child menu and assigns the new menu to
      * open when the corresponding menu button icon on the parent
      * menu is hovered over.
-     * @param menuEntry the menu button responsible for the child menu 
+     * @param menuEntry the menu button responsible for the child menu
      * @param button the button data to parse for the child menu
      */
-    buildChildMenu(menuEntry, button) {
-        const childMenu = new Contextify(button[childAttribute], this.theme, this.container);
+    buildChildMenu(menuEntry: HTMLDivElement, button: ContextifyButton) {
+        const childMenu = new Contextify(button[childAttribute]!, this.theme, this.container, undefined, this.themePath);
         childMenu.parent = this;
         childMenu.root = false;
-        const openSubMenu = event => {
+        const openSubMenu = (event: MouseEvent) => {
             if (button[enabledAttribute] === undefined || button[enabledAttribute]) {
                 let x = this.menu.offsetLeft + this.menu.clientWidth + menuEntry.offsetLeft;
                 let y = this.menu.offsetTop + menuEntry.offsetTop;
@@ -286,14 +328,14 @@ class Contextify {
      * @param parent the parent object of the menu button
      * @param func the function to call when the button is clicked
      */
-    assignClickHandler(button, menuEntry, parent, func) {
+    assignClickHandler(button: ContextifyButton, menuEntry: HTMLDivElement, parent: Contextify | null, func: (event: ContextifyClickEvent) => void) {
         menuEntry.addEventListener(clickAttribute, function () {
             func({ handled: false, button: menuEntry, parent: parent });
         });
 
         if (this.hasAttribute(button, hotkeyAttribute)) {
             const hotkey = document.createElement('span');
-            const hotkeyName = button[hotkeyAttribute];
+            const hotkeyName = button[hotkeyAttribute]!;
             hotkey.classList.add(hotkeyAttribute);
             hotkey.innerText = hotkeyName;
 
@@ -313,7 +355,7 @@ class Contextify {
      * @param attribute the attribute to look for
      * @returns {boolean} is the attribute present
      */
-    hasAttribute(button, attribute) {
+    hasAttribute(button: ContextifyButton, attribute: keyof ContextifyButton): boolean {
         return button.hasOwnProperty(attribute);
     }
 
@@ -324,7 +366,7 @@ class Contextify {
      * @param colour the string colour attribute to validate
      * @returns {boolean} did the attribute pass validation
      */
-    validateColourCode(colour) {
+    validateColourCode(colour: string): boolean {
         let splitColour = colour.split(':');
         for (let i = 0; i < 3; i++) {
             if (!/^(([0-1]?[0-9]?[0-9])|([2][0-4][0-9])|(25[0-5]))$/i.exec(splitColour[i])) {
@@ -345,12 +387,12 @@ class Contextify {
      * @param parent the parent object
      * @param text the text for the label
      */
-    appendLabelAndIcon(button, parent, text) {
+    appendLabelAndIcon(button: ContextifyButton, parent: HTMLElement, text: string | undefined) {
         if (this.hasAttribute(button, iconAttribute)) {
             if (this.validateFontAwesome()) {
                 const icon = document.createElement('span');
                 icon.classList.add('fa');
-                icon.classList.add(button[iconAttribute]);
+                icon.classList.add(button[iconAttribute]!);
                 icon.classList.add(iconAttribute);
                 parent.appendChild(icon);
             }
@@ -373,7 +415,7 @@ class Contextify {
      * @param x the x position
      * @param y the y position
      */
-    show(x, y) {
+    show(x: number, y: number) {
         if (this.active) this.hide(false);
         this.constructMenu();
 
@@ -431,7 +473,7 @@ class Contextify {
      * removing each of the child components including the children
      * context menu objects.
      */
-    hide(hideParent) {
+    hide(hideParent?: boolean) {
         if (this.active) {
             this.active = false;
             this.hideChildren();
@@ -446,8 +488,8 @@ class Contextify {
     /**
      * Systematically hides the child menus of a
      * given menu with the false param so that the
-     * child object does not try to disable its 
-     * parent oject also. 
+     * child object does not try to disable its
+     * parent oject also.
      */
     hideChildren() {
         for (const child of this.children) {
@@ -461,7 +503,7 @@ class Contextify {
      * Checks if a menu has a currently active child menu
      * @returns if a menu has an active child
      */
-    hasActiveChild() {
+    hasActiveChild(): boolean {
         return this.getActiveChild() !== null;
     }
 
@@ -470,7 +512,7 @@ class Contextify {
      * array of children for a menu.
      * @returns null or Contextify child object
      */
-    getActiveChild() {
+    getActiveChild(): Contextify | null {
         if (this.children !== undefined) {
             for (const child of this.children) {
                 if (child.active)
@@ -487,7 +529,7 @@ class Contextify {
      * @param x the x position to set
      * @param y the y position to set
      */
-    setPosition(x, y) {
+    setPosition(x: number, y: number) {
         this.menu.style.left = `${x}px`;
         this.menu.style.top = `${y}px`;
     }
@@ -497,9 +539,9 @@ class Contextify {
      * actual text of the button.
      * @param button the button to disable
      */
-    disableButton(button) {
-        this.container.querySelector(button).classList.remove('enabled');
-        this.container.querySelector(button).classList.add('disabled');
+    disableButton(button: string) {
+        this.container.querySelector(button)!.classList.remove('enabled');
+        this.container.querySelector(button)!.classList.add('disabled');
     }
 
     /**
@@ -507,9 +549,9 @@ class Contextify {
      * actual text of the button.
      * @param button the button to enable
      */
-    enableButton(button) {
-        this.container.querySelector(button).classList.remove('disabled');
-        this.container.querySelector(button).classList.add('enabled');
+    enableButton(button: string) {
+        this.container.querySelector(button)!.classList.remove('disabled');
+        this.container.querySelector(button)!.classList.add('enabled');
     }
 
     /**
@@ -518,7 +560,7 @@ class Contextify {
      * be red and 100% opaque
      * @param code the colour code to translate
      */
-    translateColourCodes(code) {
+    translateColourCodes(code: string): string {
         let split = code.split(':');
         return 'rgba(' + split[0] + ',' + split[1] + ',' + split[2] + ',' + split[3] + ')';
     }
@@ -526,37 +568,37 @@ class Contextify {
     /**
      * Checks if a page element/an object is a member of a
      * menu or menu entry
-     * @param obj the object to check 
+     * @param obj the object to check
      * @returns bool is the object a member of a menu
      */
-    menuEntryMember(obj) {
+    menuEntryMember(obj: HTMLElement): boolean {
         return (obj.classList.contains('menuEntry') ||
-            obj.parentElement.classList.contains('menuEntry'));
+            obj.parentElement!.classList.contains('menuEntry'));
     }
 
     /**
      * Checks to see if fontawesome css is included in the project,
      * or if a webkit js implementation is included in the project.
      * Only called when the icon attribute is used otherwise it will
-     * just skip over validation. 
-     * 
+     * just skip over validation.
+     *
      * https://stackoverflow.com/a/38703452/15552579
-     * 
+     *
      * @returns True if the css is present, false if not
      */
-    validateFontAwesome() {
-        var span = document.createElement('span');
+    validateFontAwesome(): boolean {
+        const span = document.createElement('span');
 
         span.className = 'fa';
         span.style.display = 'none';
         document.body.insertBefore(span, document.body.firstChild);
 
-        function css(element, property) {
+        function css(element: Element, property: string) {
             return window.getComputedStyle(element, null).getPropertyValue(property);
         }
 
         let cdnExists = css(span, 'font-family').toLowerCase() === 'fontawesome';
-        let jsExists = window.FontAwesomeKitConfig !== undefined;
+        let jsExists = (window as { FontAwesomeKitConfig?: unknown }).FontAwesomeKitConfig !== undefined;
         document.body.removeChild(span);
         return cdnExists || jsExists;
     }
