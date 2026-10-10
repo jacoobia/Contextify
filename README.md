@@ -1,7 +1,4 @@
 <p float="left>
- <a href="https://fontawesome.com/">
-  <img alt="Supports FontAwesome!" src="https://img.shields.io/badge/supports-fontawesome-blue?style=for-the-badge" style="display: inline-block;">
- </a>
  <img alt="GitHub Download Count" src="https://img.shields.io/github/downloads/jacoobia/Contextify/total?style=for-the-badge" style="display: inline-block;">
 </p>
 
@@ -11,7 +8,7 @@
 
 <br/>
 
-A lightweight vanilla JavaScript context menu library with FontAwesome support. <br/>
+A lightweight vanilla JavaScript context menu library with support for any icon library. <br/>
 This library was written for use in a personal project of mine as an AIO solution for the features of a context menu that I wanted that I could only find spread across multiple different context menu libraries. This is very early doors and I will continue to maintain this however slowly that may be as I build my personal projects and use cases change or the need for features arise.
 
 # Usage
@@ -25,8 +22,8 @@ npm install contextify
 
     //Construct our menu buttons 
     const menuButtons = [
-        { icon: 'fa-camera', type: 'button', text: 'Screenshot', click: screenshot },
-        { icon: 'fa-times-circle', type: 'button', text: 'Cancel', click: (event) => { menu.hide(false); }}
+        { icon: 'fa-solid fa-camera', type: 'button', text: 'Screenshot', click: screenshot },
+        { icon: 'fa-solid fa-times-circle', type: 'button', text: 'Cancel', click: (event) => { menu.hide(false); }}
     ];
     //Create our new Contextify object with the buttons, theme, container
     const menu = new Contextify(menuButtons, "dark", document.body);
@@ -45,6 +42,14 @@ Without a bundler, use the browser build, which exposes a global `Contextify`:
 ```
 
 TypeScript types ship with the package (`ContextifyButton`, `ContextifyClickEvent`, `Alignment`).
+
+Icons work with any icon library. Pass the icon's class names as a string, or pass an element such as an inline SVG:
+
+```
+    { icon: 'fa-solid fa-camera', text: 'Screenshot' }      // FontAwesome
+    { icon: 'bi bi-camera', text: 'Screenshot' }            // Bootstrap Icons
+    { icon: mySvgElement, text: 'Screenshot' }              // any Element, cloned into the menu
+```
 
 Which creates the following menu (note, the example requires you to have a form of FontAwesome installed):
 ![Example Menu](https://by3301files.storage.live.com/y4meHtRWf5VBnb5SxLdxHbo-apkdGGw8MCFqGiW-T7sUl7KSlJkkWMDMwZeTXBDCFw7qZqbCUZ58hPljmvqTTxu7mm819PPWu_PpmtJLw-rXW50bzstHEQotokCZgFbU6Wy4lYt2824E7pbUON25EnoqboF1ASE8-c7OwIgUp_8P-HdzcGSOcxR_Lb7K-f5JY2K?width=252&height=84&cropmode=none)

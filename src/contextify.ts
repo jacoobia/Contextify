@@ -28,7 +28,7 @@ export interface ContextifyClickEvent {
 export interface ContextifyButton {
     type?: 'button' | 'separator';
     text?: string;
-    icon?: string;
+    icon?: string | Element;
     hotkey?: string;
     colour?: string;
     textcolour?: string;
@@ -389,14 +389,13 @@ export default class Contextify {
      */
     appendLabelAndIcon(button: ContextifyButton, parent: HTMLElement, text: string | undefined) {
         if (this.hasAttribute(button, iconAttribute)) {
-            if (this.validateFontAwesome()) {
-                const icon = document.createElement('span');
-                icon.classList.add('fa');
-                icon.classList.add(button[iconAttribute]!);
-                icon.classList.add(iconAttribute);
-                parent.appendChild(icon);
-            }
-            else console.warn('Warning: Use of icons requires fontawesome. Icons will not load.');
+            const icon = document.createElement('span');
+            const iconData = button[iconAttribute]!;
+            if (typeof iconData === 'string')
+                icon.classList.add(...iconData.split(/\s+/).filter(Boolean));
+            else icon.appendChild(iconData.cloneNode(true));
+            icon.classList.add(iconAttribute);
+            parent.appendChild(icon);
         }
 
         const label = document.createElement('span');
@@ -574,33 +573,6 @@ export default class Contextify {
     menuEntryMember(obj: HTMLElement): boolean {
         return (obj.classList.contains('menuEntry') ||
             obj.parentElement!.classList.contains('menuEntry'));
-    }
-
-    /**
-     * Checks to see if fontawesome css is included in the project,
-     * or if a webkit js implementation is included in the project.
-     * Only called when the icon attribute is used otherwise it will
-     * just skip over validation.
-     *
-     * https://stackoverflow.com/a/38703452/15552579
-     *
-     * @returns True if the css is present, false if not
-     */
-    validateFontAwesome(): boolean {
-        const span = document.createElement('span');
-
-        span.className = 'fa';
-        span.style.display = 'none';
-        document.body.insertBefore(span, document.body.firstChild);
-
-        function css(element: Element, property: string) {
-            return window.getComputedStyle(element, null).getPropertyValue(property);
-        }
-
-        let cdnExists = css(span, 'font-family').toLowerCase() === 'fontawesome';
-        let jsExists = (window as { FontAwesomeKitConfig?: unknown }).FontAwesomeKitConfig !== undefined;
-        document.body.removeChild(span);
-        return cdnExists || jsExists;
     }
 
     /**
