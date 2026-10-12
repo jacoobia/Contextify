@@ -17,11 +17,18 @@ const enabledAttribute = 'enabled';
 
 const childTimeout = 200;
 
+const modifierKeys: Record<string, 'ctrlKey' | 'altKey' | 'shiftKey' | 'metaKey'> = {
+    ctrl: 'ctrlKey', control: 'ctrlKey',
+    alt: 'altKey', option: 'altKey',
+    shift: 'shiftKey',
+    meta: 'metaKey', cmd: 'metaKey', command: 'metaKey'
+};
+
 export type Alignment = 'north-west' | 'north-east' | 'south-west' | 'south-east';
 
 export interface ContextifyClickEvent {
     handled: boolean;
-    button: HTMLDivElement;
+    button: HTMLDivElement | null;
     parent: Contextify | null;
 }
 
@@ -30,6 +37,7 @@ export interface ContextifyButton {
     text?: string;
     icon?: string | Element;
     hotkey?: string;
+    requireMenuOpen?: boolean;
     colour?: string;
     textcolour?: string;
     enabled?: boolean;
@@ -65,12 +73,11 @@ export default class Contextify {
     root: boolean;
     buttons: ContextifyButton[];
     children: Contextify[];
-    hotkey: string[];
-    pressed: string[];
-    keypressFunc: ((event: ContextifyClickEvent) => void) | null;
+    childMenus: Map<ContextifyButton, Contextify>;
+    entries: Map<ContextifyButton, HTMLDivElement>;
     theme: string;
     themePath: string;
-    alignment: Alignment | undefined;
+    alignment: Alignment;
     link?: HTMLLinkElement;
     menu!: HTMLDivElement;
     leaveTimeout?: ReturnType<typeof setTimeout>;
@@ -78,6 +85,7 @@ export default class Contextify {
     clickEvent!: (event: MouseEvent) => void;
     mouseLeave!: (event: MouseEvent) => void;
     mouseEnter!: (event: MouseEvent) => void;
+    keyPressedEvent!: (event: KeyboardEvent) => void;
 
     /**
      * Takes in the parent div which controls where you can
@@ -93,7 +101,7 @@ export default class Contextify {
      * @param alignment @optional the orientation of parent
      * @param parent the parent object, only defined for submenus
      */
-    constructor(buttons: ContextifyButton[], theme: string, container: HTMLElement, alignment?: Alignment, themePath = 'themes/') {
+    constructor(buttons: ContextifyButton[], theme: string, container: HTMLElement = document.body, alignment: Alignment = 'south-east', themePath = 'themes/') {
         this.container = container;
         this.parent = null;
         this.active = false;
@@ -101,14 +109,17 @@ export default class Contextify {
         this.root = true;
         this.buttons = buttons;
         this.children = [];
-        this.hotkey = [];
-        this.pressed = [];
-        this.keypressFunc = null;
+        this.childMenus = new Map();
+        this.entries = new Map();
         this.theme = theme;
         this.themePath = themePath;
         this.alignment = alignment;
 
         this.assignTheme(theme);
+        for (const button of buttons) {
+            if (this.hasAttribute(button, childAttribute))
+                this.getChildMenu(button);
+        }
         this.constructEvents();
         this.register();
     }
@@ -159,12 +170,12 @@ export default class Contextify {
          * @param {*} event
          */
         this.clickEvent = event => {
-            event.preventDefault();
             if (this.root) {
                 if (this.menu !== undefined) {
                     if (!this.menuEntryMember(event.target as HTMLElement)) {
                         this.hide(false);
                     }
+                    else event.preventDefault();
                 }
             }
         }
@@ -212,6 +223,26 @@ export default class Contextify {
             if (this.leaveTimeout !== undefined)
                 clearTimeout(this.leaveTimeout);
         }
+
+        this.keyPressedEvent = event => {
+            let root: Contextify = this;
+            while (root.parent !== null)
+                root = root.parent;
+            for (const button of this.buttons) {
+                const click = button[clickAttribute];
+                const hotkey = button[hotkeyAttribute];
+                if (typeof click !== 'function' || hotkey === undefined || button[enabledAttribute] === false)
+                    continue;
+                if (button.requireMenuOpen && !root.active)
+                    continue;
+                if (this.matchesHotkey(hotkey, event)) {
+                    event.preventDefault();
+                    const menuEntry = this.active ? this.entries.get(button) : undefined;
+                    click({ handled: false, button: menuEntry ?? null, parent: this.parent });
+                    return;
+                }
+            }
+        }
     }
 
     /**
@@ -225,6 +256,7 @@ export default class Contextify {
     constructMenu() {
         this.menu = document.createElement('div');
         this.menu.classList.add('context');
+        this.entries.clear();
         for (const button of this.buttons)
             this.menu.appendChild(this.parseButtonData(button));
         this.container.appendChild(this.menu);
@@ -246,6 +278,7 @@ export default class Contextify {
             menuEntry.classList.add('separator');
             return menuEntry;
         }
+        this.entries.set(button, menuEntry);
 
         if (this.hasAttribute(button, childAttribute)) {
             this.buildChildMenu(menuEntry, button);
@@ -302,9 +335,7 @@ export default class Contextify {
      * @param button the button data to parse for the child menu
      */
     buildChildMenu(menuEntry: HTMLDivElement, button: ContextifyButton) {
-        const childMenu = new Contextify(button[childAttribute]!, this.theme, this.container, undefined, this.themePath);
-        childMenu.parent = this;
-        childMenu.root = false;
+        const childMenu = this.getChildMenu(button);
         const openSubMenu = (event: MouseEvent) => {
             if (button[enabledAttribute] === undefined || button[enabledAttribute]) {
                 let x = this.menu.offsetLeft + this.menu.clientWidth + menuEntry.offsetLeft;
@@ -316,8 +347,30 @@ export default class Contextify {
             }
         }
 
-        this.children.push(childMenu);
         menuEntry.addEventListener(mouseEnterEvent, openSubMenu);
+    }
+
+    getChildMenu(button: ContextifyButton): Contextify {
+        let childMenu = this.childMenus.get(button);
+        if (childMenu === undefined) {
+            childMenu = new Contextify(button[childAttribute]!, this.theme, this.container, undefined, this.themePath);
+            childMenu.parent = this;
+            childMenu.root = false;
+            this.childMenus.set(button, childMenu);
+            this.children.push(childMenu);
+        }
+        return childMenu;
+    }
+
+    matchesHotkey(hotkey: string, event: KeyboardEvent): boolean {
+        const keys = hotkey.toLowerCase().split(' + ');
+        const key = keys.pop()!;
+        for (const property of ['ctrlKey', 'altKey', 'shiftKey', 'metaKey'] as const) {
+            if (event[property] !== keys.some(name => modifierKeys[name] === property))
+                return false;
+        }
+        const code = event.code.toLowerCase();
+        return event.key.toLowerCase() === key || code === 'key' + key || code === 'digit' + key;
     }
 
     /**
@@ -338,12 +391,6 @@ export default class Contextify {
             const hotkeyName = button[hotkeyAttribute]!;
             hotkey.classList.add(hotkeyAttribute);
             hotkey.innerText = hotkeyName;
-
-            if (hotkeyName.includes(' + ')) {
-                this.hotkey = hotkeyName.split(' + ');
-            }
-
-            this.keypressFunc = func;
             menuEntry.appendChild(hotkey);
         }
     }
@@ -581,8 +628,10 @@ export default class Contextify {
      */
     register() {
         this.container.addEventListener(contextEvent, this.contextEvent);
-        //this.container.addEventListener(keyPressEvent, this.keyPressedEvent);
+        this.container.addEventListener(keyPressEvent, this.keyPressedEvent);
         this.container.addEventListener(mouseClickEvent, this.clickEvent);
+        for (const child of this.children)
+            child.register();
     }
 
     /**
@@ -591,8 +640,10 @@ export default class Contextify {
      */
     deregister() {
         this.container.removeEventListener(contextEvent, this.contextEvent);
-        //this.container.removeEventListener(keyPressEvent, this.keyPressedEvent);
+        this.container.removeEventListener(keyPressEvent, this.keyPressedEvent);
         this.container.removeEventListener(mouseClickEvent, this.clickEvent);
+        for (const child of this.children)
+            child.deregister();
     }
 
 }
