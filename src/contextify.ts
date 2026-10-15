@@ -11,6 +11,7 @@ const typeAttribute = 'type';
 const iconAttribute = 'icon';
 const textAttribute = 'text';
 const hotkeyAttribute = 'hotkey';
+const hotkeyLabelAttribute = 'hotkeyLabel';
 const colourAttribute = 'colour';
 const textColourAttribute = 'textcolour';
 const enabledAttribute = 'enabled';
@@ -24,19 +25,24 @@ const modifierKeys: Record<string, 'ctrlKey' | 'altKey' | 'shiftKey' | 'metaKey'
     meta: 'metaKey', cmd: 'metaKey', command: 'metaKey'
 };
 
+const nonTextInputs = ['button', 'checkbox', 'color', 'file', 'image', 'radio', 'range', 'reset', 'submit'];
+
 export type Alignment = 'north-west' | 'north-east' | 'south-west' | 'south-east';
 
-export interface ContextifyClickEvent {
+export type ContextifyClickEvent = {
     handled: boolean;
-    button: HTMLDivElement | null;
     parent: Contextify | null;
-}
+} & (
+    | { hotkey?: undefined; button: HTMLDivElement }
+    | { hotkey: string; button: HTMLDivElement | null }
+);
 
 export interface ContextifyButton {
     type?: 'button' | 'separator';
     text?: string;
     icon?: string | Element;
     hotkey?: string;
+    hotkeyLabel?: string | false;
     requireMenuOpen?: boolean;
     colour?: string;
     textcolour?: string;
@@ -228,6 +234,10 @@ export default class Contextify {
             let root: Contextify = this;
             while (root.parent !== null)
                 root = root.parent;
+            if (!root.active && !this.container.contains(event.target as Node))
+                return;
+            if (this.isTextField(event.target) && !event.ctrlKey && !event.altKey && !event.metaKey)
+                return;
             for (const button of this.buttons) {
                 const click = button[clickAttribute];
                 const hotkey = button[hotkeyAttribute];
@@ -238,7 +248,7 @@ export default class Contextify {
                 if (this.matchesHotkey(hotkey, event)) {
                     event.preventDefault();
                     const menuEntry = this.active ? this.entries.get(button) : undefined;
-                    click({ handled: false, button: menuEntry ?? null, parent: this.parent });
+                    click({ handled: false, button: menuEntry ?? null, parent: this.parent, hotkey });
                     return;
                 }
             }
@@ -362,6 +372,13 @@ export default class Contextify {
         return childMenu;
     }
 
+    isTextField(target: EventTarget | null): boolean {
+        if (target instanceof HTMLInputElement)
+            return !nonTextInputs.includes(target.type);
+        return target instanceof HTMLTextAreaElement || target instanceof HTMLSelectElement ||
+            (target instanceof HTMLElement && target.isContentEditable);
+    }
+
     matchesHotkey(hotkey: string, event: KeyboardEvent): boolean {
         const keys = hotkey.toLowerCase().split(' + ');
         const key = keys.pop()!;
@@ -386,9 +403,9 @@ export default class Contextify {
             func({ handled: false, button: menuEntry, parent: parent });
         });
 
-        if (this.hasAttribute(button, hotkeyAttribute)) {
+        const hotkeyName = button[hotkeyLabelAttribute] ?? button[hotkeyAttribute];
+        if (hotkeyName) {
             const hotkey = document.createElement('span');
-            const hotkeyName = button[hotkeyAttribute]!;
             hotkey.classList.add(hotkeyAttribute);
             hotkey.innerText = hotkeyName;
             menuEntry.appendChild(hotkey);
@@ -628,7 +645,7 @@ export default class Contextify {
      */
     register() {
         this.container.addEventListener(contextEvent, this.contextEvent);
-        this.container.addEventListener(keyPressEvent, this.keyPressedEvent);
+        document.addEventListener(keyPressEvent, this.keyPressedEvent);
         this.container.addEventListener(mouseClickEvent, this.clickEvent);
         for (const child of this.children)
             child.register();
@@ -640,7 +657,7 @@ export default class Contextify {
      */
     deregister() {
         this.container.removeEventListener(contextEvent, this.contextEvent);
-        this.container.removeEventListener(keyPressEvent, this.keyPressedEvent);
+        document.removeEventListener(keyPressEvent, this.keyPressedEvent);
         this.container.removeEventListener(mouseClickEvent, this.clickEvent);
         for (const child of this.children)
             child.deregister();
