@@ -62,7 +62,7 @@ new Contextify(buttons, theme, container?, alignment?, themePath?)
 | `theme` | | Theme name, e.g. `"dark"` loads `contextify-dark.css`. |
 | `container` | `document.body` | Element the menu is attached to and listens on. |
 | `alignment` | `'south-east'` | Which way the menu opens from the cursor: `'north-west'`, `'north-east'`, `'south-west'` or `'south-east'`. |
-| `themePath` | `'themes/'` | Folder the theme CSS is loaded from, e.g. `"/node_modules/@jacoobia/contextify/themes/"`. |
+| `themePath` | `'themes/'` | Folder the theme CSS is loaded from, relative to the page. See [Themes](#themes). |
 
 ### Buttons
 
@@ -106,6 +106,16 @@ click: (event) => {
 ## Themes
 
 ![All six themes](media/themes.png)
+
+Themes are stylesheets loaded at runtime from `themePath`. The default `'themes/'` is relative to the page, so either:
+
+- load them from a CDN:
+
+```js
+new Contextify(buttons, 'dark', document.body, 'south-east', 'https://unpkg.com/@jacoobia/contextify@2/themes/');
+```
+
+- or copy `node_modules/@jacoobia/contextify/themes/` into the folder your site serves, and keep the default or point `themePath` at it.
 
 | Theme | Menu colour | Corners | Icons | Shortcuts |
 | --- | --- | --- | --- | --- |
