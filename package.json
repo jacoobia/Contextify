@@ -1,6 +1,6 @@
 {
   "name": "@jacoobia/contextify",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "description": "A lightweight vanilla JavaScript context menu library with support for any icon library.",
   "author": "Jacob Hampton",
   "license": "MIT",
