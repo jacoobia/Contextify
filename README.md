@@ -1,10 +1,13 @@
-<p float="left">
- <img alt="GitHub Download Count" src="https://img.shields.io/github/downloads/jacoobia/Contextify/total?style=for-the-badge" style="display: inline-block;">
+<h1 align="center">Contextify</h1>
+
+<p align="center">
+ <a href="https://www.npmjs.com/package/@jacoobia/contextify"><img alt="npm downloads" src="https://img.shields.io/npm/d18m/@jacoobia/contextify?style=for-the-badge"></a>
+ <a href="https://www.npmjs.com/package/@jacoobia/contextify"><img alt="npm version" src="https://img.shields.io/npm/v/@jacoobia/contextify?style=for-the-badge"></a>
 </p>
 
-# Contextify
+2026 - I finally got bored enough to update this little project. This project is now an ES module, rewritten in TypeScript, providing its own types and published to npm as @jacoobia/contextify. As before, I won't maintain this actively, just whenever I feel like it. Feel free to contribute
 
-A lightweight vanilla JavaScript context menu library with support for any icon library. <br/>
+A lightweight context menu library with support for any icon library. <br/>
 This library was written for use in a personal project of mine as an AIO solution for the features of a context menu that I wanted that I could only find spread across multiple different context menu libraries. This is very early doors and I will continue to maintain this however slowly that may be as I build my personal projects and use cases change or the need for features arise.
 
 ![Contextify in a file manager](media/hero-dark.png)
