@@ -1,0 +1,358 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Contextify Showcase</title>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fira+Sans:wght@400;500&display=block">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <script src="https://kit.fontawesome.com/df7df855c2.js" crossorigin="anonymous"></script>
+    <style>
+        :root {
+            --desk: #e4e7eb;
+            --window: #ffffff;
+            --bar: #f4f5f7;
+            --line: #dcdfe4;
+            --text: #1f2328;
+            --muted: #656d76;
+            --select: #dbe7fb;
+            --select-line: #8fb3ef;
+            --folder: #e0a93a;
+            --file: #6e7781;
+        }
+        :root[data-chrome="dark"] {
+            --desk: #0e0f11;
+            --window: #1b1c1f;
+            --bar: #222327;
+            --line: #2f3136;
+            --text: #e6e7ea;
+            --muted: #9a9ea6;
+            --select: #2c3a52;
+            --select-line: #4f6d9e;
+            --folder: #d9a23b;
+            --file: #9aa1ab;
+        }
+        * { box-sizing: border-box; }
+        body {
+            margin: 0;
+            min-height: 100vh;
+            padding: 32px 16px;
+            background: var(--desk);
+            color: var(--text);
+            font: 14px/1.4 "Segoe UI", system-ui, -apple-system, sans-serif;
+        }
+        .controls, .hint {
+            max-width: 880px;
+            margin: 0 auto;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 16px;
+            align-items: center;
+            color: var(--muted);
+        }
+        .controls { margin-bottom: 40px; }
+        .hint { margin-top: 40px; }
+        .controls label { display: flex; gap: 8px; align-items: center; }
+        .controls select {
+            font: inherit;
+            color: var(--text);
+            background: var(--window);
+            border: 1px solid var(--line);
+            border-radius: 6px;
+            padding: 4px 8px;
+        }
+        kbd {
+            font: 12px "Segoe UI", system-ui, sans-serif;
+            border: 1px solid var(--line);
+            border-bottom-width: 2px;
+            border-radius: 4px;
+            padding: 0 5px;
+            background: var(--window);
+            color: var(--text);
+        }
+        .window {
+            max-width: 880px;
+            margin: 0 auto;
+            background: var(--window);
+            border: 1px solid var(--line);
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 12px 32px rgba(0, 0, 0, 0.18);
+        }
+        .titlebar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 16px;
+            padding: 12px 20px;
+            background: var(--bar);
+            border-bottom: 1px solid var(--line);
+        }
+        .crumbs { display: flex; gap: 6px; align-items: center; color: var(--muted); }
+        .crumbs strong { color: var(--text); font-weight: 600; }
+        .count { color: var(--muted); font-size: 13px; }
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(112px, 1fr));
+            gap: 8px;
+            padding: 24px 20px 32px;
+            min-height: 400px;
+            align-content: start;
+        }
+        .tile {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 6px;
+            padding: 12px 6px 10px;
+            border: 1px solid transparent;
+            border-radius: 8px;
+            background: none;
+            color: inherit;
+            font: inherit;
+            font-size: 13px;
+            cursor: default;
+        }
+        .tile:hover { background: color-mix(in srgb, var(--select) 45%, transparent); }
+        .tile:focus-visible { outline: 2px solid var(--select-line); outline-offset: 1px; }
+        .tile.selected { background: var(--select); border-color: var(--select-line); }
+        .tile i { font-size: 44px; line-height: 1; color: var(--file); }
+        .tile.folder i { color: var(--folder); }
+        .tile .name {
+            max-width: 100%;
+            overflow-wrap: anywhere;
+            text-align: center;
+            border-radius: 3px;
+            padding: 0 3px;
+        }
+        .tile .name[contenteditable] { background: var(--window); outline: 1px solid var(--select-line); }
+        .status {
+            padding: 8px 20px;
+            border-top: 1px solid var(--line);
+            background: var(--bar);
+            color: var(--muted);
+            font-size: 13px;
+            min-height: 36px;
+        }
+        .context .icon svg {
+            width: 1.3em;
+            height: 1.3em;
+            vertical-align: -0.3em;
+        }
+    </style>
+</head>
+<body>
+
+<div class="controls">
+    <label>Theme
+        <select id="theme">
+            <option>dark</option><option>light</option><option>acid</option>
+            <option>min</option><option>simple</option><option>soft</option>
+        </select>
+    </label>
+    <label>Icons
+        <select id="icons">
+            <option value="bootstrap">Bootstrap Icons</option>
+            <option value="fontawesome">Font Awesome</option>
+            <option value="svg">Inline SVG (Heroicons)</option>
+        </select>
+    </label>
+</div>
+
+<div class="window">
+    <div class="titlebar">
+        <div class="crumbs"><span>Projects</span><i class="bi bi-chevron-right"></i><strong>contextify</strong></div>
+        <div class="count" id="count"></div>
+    </div>
+    <div class="grid" id="grid"></div>
+    <div class="status" id="status" role="status">Right-click a file or folder.</div>
+</div>
+
+<p class="hint">Shortcuts work with the menu closed: select a file, then press <kbd>F2</kbd> to rename or <kbd>Delete</kbd> to delete it.</p>
+
+<script src="../dist/contextify.global.js"></script>
+<script>
+    const params = new URLSearchParams(location.search);
+    const theme = params.get('theme') || 'dark';
+    const iconSet = params.get('icons') || 'bootstrap';
+    const lightThemes = ['light', 'soft', 'simple'];
+    document.documentElement.dataset.chrome = lightThemes.includes(theme) ? 'light' : 'dark';
+    document.getElementById('theme').value = theme;
+    document.getElementById('icons').value = iconSet;
+    for (const id of ['theme', 'icons']) {
+        document.getElementById(id).addEventListener('change', () => {
+            params.set(id, document.getElementById(id).value);
+            location.search = params.toString();
+        });
+    }
+
+    const files = [
+        { name: 'demo', folder: true },
+        { name: 'dist', folder: true },
+        { name: 'src', folder: true },
+        { name: 'themes', folder: true },
+        { name: '.gitignore', icon: 'bi-file-earmark-text' },
+        { name: 'LICENSE', icon: 'bi-file-earmark-lock' },
+        { name: 'package.json', icon: 'bi-filetype-json' },
+        { name: 'README.md', icon: 'bi-filetype-md' },
+        { name: 'tsconfig.json', icon: 'bi-filetype-json' },
+        { name: 'tsup.config.ts', icon: 'bi-file-earmark-code' }
+    ];
+
+    const grid = document.getElementById('grid');
+    const status = document.getElementById('status');
+    let selected = null;
+
+    const say = text => { status.textContent = text; };
+    const updateCount = () => {
+        const n = grid.children.length;
+        document.getElementById('count').textContent = n + (n === 1 ? ' item' : ' items');
+    };
+    const select = tile => {
+        if (selected) selected.classList.remove('selected');
+        selected = tile;
+        if (tile) tile.classList.add('selected');
+    };
+    const nameOf = tile => tile.querySelector('.name').textContent;
+
+    const addTile = (file, after) => {
+        const tile = document.createElement('button');
+        tile.type = 'button';
+        tile.className = 'tile' + (file.folder ? ' folder' : '');
+        tile.innerHTML = '<i class="bi ' + (file.folder ? 'bi-folder-fill' : file.icon) + '" aria-hidden="true"></i><span class="name"></span>';
+        tile.querySelector('.name').textContent = file.name;
+        tile.addEventListener('click', () => select(tile));
+        tile.addEventListener('dblclick', () => openFile(tile));
+        if (after) after.after(tile); else grid.appendChild(tile);
+        updateCount();
+        return tile;
+    };
+    files.forEach(file => addTile(file));
+
+    grid.addEventListener('contextmenu', event => {
+        const tile = event.target.closest('.tile');
+        if (tile) select(tile);
+        else {
+            event.preventDefault();
+            event.stopPropagation();
+        }
+    }, true);
+    grid.addEventListener('mousedown', event => {
+        if (!event.target.closest('.tile') && !event.target.closest('.context')) select(null);
+    });
+
+    const openFile = tile => say((tile.classList.contains('folder') ? 'Opened folder ' : 'Opened ') + nameOf(tile));
+
+    const rename = tile => {
+        const name = tile.querySelector('.name');
+        const before = name.textContent;
+        name.contentEditable = 'true';
+        name.focus();
+        const dot = before.lastIndexOf('.');
+        const range = document.createRange();
+        range.setStart(name.firstChild, 0);
+        range.setEnd(name.firstChild, dot > 0 ? dot : before.length);
+        getSelection().removeAllRanges();
+        getSelection().addRange(range);
+        const finish = keep => {
+            name.removeAttribute('contenteditable');
+            name.removeEventListener('keydown', onKey);
+            name.removeEventListener('blur', onBlur);
+            const after = name.textContent.trim();
+            if (!keep || !after) name.textContent = before;
+            else if (after !== before) say('Renamed ' + before + ' to ' + after);
+            tile.focus();
+        };
+        const onKey = e => {
+            if (e.key !== 'Enter' && e.key !== 'Escape') return;
+            e.preventDefault();
+            e.stopPropagation();
+            finish(e.key === 'Enter');
+        };
+        const onBlur = () => finish(true);
+        name.addEventListener('keydown', onKey);
+        name.addEventListener('blur', onBlur);
+    };
+
+    const duplicate = tile => {
+        const name = nameOf(tile);
+        const dot = name.lastIndexOf('.');
+        const copyName = dot > 0 ? name.slice(0, dot) + ' copy' + name.slice(dot) : name + ' copy';
+        const icon = tile.querySelector('i').className.replace('bi ', '');
+        select(addTile({ name: copyName, folder: tile.classList.contains('folder'), icon }, tile));
+        say('Created ' + copyName);
+    };
+
+    const moveTo = folder => {
+        if (!selected) return;
+        const name = nameOf(selected);
+        if (name === folder) return say("Can't move " + name + ' into itself');
+        selected.remove();
+        select(null);
+        updateCount();
+        say('Moved ' + name + ' to ' + folder);
+    };
+
+    const copyPath = async tile => {
+        const path = 'contextify/' + nameOf(tile);
+        try {
+            await navigator.clipboard.writeText(path);
+            say('Copied ' + path);
+        } catch {
+            say('Path: ' + path);
+        }
+    };
+
+    const remove = tile => {
+        const name = nameOf(tile);
+        tile.remove();
+        select(null);
+        updateCount();
+        say('Deleted ' + name);
+    };
+
+    const iconNames = {
+        open:      { bootstrap: 'bi bi-folder2-open',      fontawesome: 'fas fa-folder-open', svg: 'folder-open' },
+        rename:    { bootstrap: 'bi bi-input-cursor-text', fontawesome: 'fas fa-i-cursor',    svg: 'pencil-square' },
+        duplicate: { bootstrap: 'bi bi-copy',              fontawesome: 'fas fa-clone',       svg: 'document-duplicate' },
+        move:      { bootstrap: 'bi bi-folder-symlink',    fontawesome: 'fas fa-file-export', svg: 'folder-arrow-down' },
+        path:      { bootstrap: 'bi bi-link-45deg',        fontawesome: 'fas fa-link',        svg: 'link' },
+        remove:    { bootstrap: 'bi bi-trash3',            fontawesome: 'fas fa-trash-alt',   svg: 'trash' },
+        folder:    { bootstrap: 'bi bi-folder',            fontawesome: 'fas fa-folder',      svg: 'folder' }
+    };
+
+    const loadIcons = async () => {
+        const icons = {};
+        for (const [key, names] of Object.entries(iconNames)) {
+            if (iconSet !== 'svg') {
+                icons[key] = names[iconSet];
+                continue;
+            }
+            const response = await fetch('https://cdn.jsdelivr.net/npm/heroicons@2.1.5/24/outline/' + names.svg + '.svg');
+            icons[key] = new DOMParser().parseFromString(await response.text(), 'image/svg+xml').documentElement;
+        }
+        return icons;
+    };
+
+    const onSelected = action => () => {
+        window.menu.hide();
+        if (selected) action(selected);
+    };
+
+    loadIcons().then(icons => {
+        const folderButton = name => ({ icon: icons.folder, text: name, click: () => { window.menu.hide(); moveTo(name); } });
+        window.menu = new Contextify([
+            { icon: icons.open, text: 'Open', hotkey: 'Enter', click: onSelected(openFile) },
+            { icon: icons.rename, text: 'Rename', hotkey: 'F2', click: onSelected(rename) },
+            { icon: icons.duplicate, text: 'Duplicate', hotkey: 'Ctrl + D', click: onSelected(duplicate) },
+            { type: 'separator' },
+            { icon: icons.move, text: 'Move to', child: ['demo', 'dist', 'src', 'themes'].map(folderButton) },
+            { icon: icons.path, text: 'Copy path', hotkey: 'Alt + Shift + C', click: onSelected(copyPath) },
+            { type: 'separator' },
+            { icon: icons.remove, text: 'Delete', hotkey: 'Delete', textcolour: '229:83:75:1', click: onSelected(remove) }
+        ], theme, grid, 'south-east', '../themes/');
+        return document.fonts.ready;
+    }).then(() => { document.body.dataset.ready = 'true'; });
+</script>
+</body>
+</html>
