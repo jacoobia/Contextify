@@ -1,0 +1,50 @@
+name: Release
+
+on:
+  push:
+    tags: ['[0-9]+.[0-9]+.[0-9]+']
+
+permissions:
+  contents: write
+  id-token: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    env:
+      TAG: ${{ github.ref_name }}
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          registry-url: https://registry.npmjs.org
+
+      - name: Use an npm with trusted publishing
+        run: npm install -g npm@^11.5.1
+
+      - name: Check tag matches package.json
+        run: test "$(node -p "require('./package.json').version")" = "$TAG"
+
+      - run: npm ci
+      - run: npm run build
+
+      - name: Publish to npm
+        run: |
+          if npm view "$(node -p "require('./package.json').name")@$TAG" version >/dev/null 2>&1; then
+            echo "$TAG is already on npm, skipping publish"
+          else
+            npm publish
+          fi
+
+      - name: Create GitHub release
+        run: |
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            echo "Release $TAG already exists, skipping"
+            exit 0
+          fi
+          zip -r "contextify-$TAG.zip" dist themes LICENSE README.md
+          gh release create "$TAG" --title "Contextify-$TAG" --generate-notes \
+            "contextify-$TAG.zip" dist/contextify.global.js

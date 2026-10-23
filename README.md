@@ -12,17 +12,17 @@ This library was written for use in a personal project of mine as an AIO solutio
 ## Install
 
 ```sh
-npm install contextify
+npm install @jacoobia/contextify
 ```
 
 ```js
-import Contextify from 'contextify';
+import Contextify from '@jacoobia/contextify';
 ```
 
 Or without a bundler:
 
 ```html
-<script src="https://unpkg.com/contextify/dist/contextify.global.js"></script>
+<script src="https://unpkg.com/@jacoobia/contextify/dist/contextify.global.js"></script>
 ```
 
 | Build | File | Size |
@@ -62,7 +62,7 @@ new Contextify(buttons, theme, container?, alignment?, themePath?)
 | `theme` | | Theme name, e.g. `"dark"` loads `contextify-dark.css`. |
 | `container` | `document.body` | Element the menu is attached to and listens on. |
 | `alignment` | `'south-east'` | Which way the menu opens from the cursor: `'north-west'`, `'north-east'`, `'south-west'` or `'south-east'`. |
-| `themePath` | `'themes/'` | Folder the theme CSS is loaded from, e.g. `"/node_modules/contextify/themes/"`. |
+| `themePath` | `'themes/'` | Folder the theme CSS is loaded from, e.g. `"/node_modules/@jacoobia/contextify/themes/"`. |
 
 ### Buttons
 
@@ -133,7 +133,7 @@ Custom theme: copy a file from `themes/` to `contextify-{name}.css` in your `the
 Types ship with the package:
 
 ```ts
-import Contextify, { type ContextifyButton, type ContextifyClickEvent, type Alignment } from 'contextify';
+import Contextify, { type ContextifyButton, type ContextifyClickEvent, type Alignment } from '@jacoobia/contextify';
 ```
 
 ## Demos
